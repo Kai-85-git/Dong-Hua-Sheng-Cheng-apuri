@@ -20,7 +20,7 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 
 db.init_app(app)
 
-LUMA_API_BASE = "https://api.lumalabs.ai/v1"
+LUMA_API_ENDPOINT = "https://api.lumalabs.ai/dream-machine/v1/generations"
 LUMA_API_KEY = os.environ.get("LUMA_API_KEY")
 
 @app.route('/')
@@ -36,14 +36,15 @@ def generate_animation():
     try:
         # Call LUMA API to generate animation
         headers = {
-            "Authorization": f"Bearer {LUMA_API_KEY}",
-            "Content-Type": "application/json"
+            "accept": "application/json",
+            "authorization": f"Bearer {LUMA_API_KEY}",
+            "content-type": "application/json"
         }
         
         response = requests.post(
-            f"{LUMA_API_BASE}/animations",
+            LUMA_API_ENDPOINT,
             headers=headers,
-            json={"prompt": prompt, "duration": 5}
+            json={"prompt": prompt}
         )
         
         if response.status_code == 200:
