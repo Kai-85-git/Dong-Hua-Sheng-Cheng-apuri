@@ -94,6 +94,49 @@ def generate_animation():
         return jsonify({
             'success': False,
             'error': str(e)
+@app.route('/api/generations')
+def list_generations():
+    try:
+        # Get pagination parameters
+        limit = request.args.get('limit', default=10, type=int)
+        offset = request.args.get('offset', default=0, type=int)
+        
+        headers = {
+            "accept": "application/json",
+            "authorization": f"Bearer {LUMA_API_KEY}"
+        }
+        
+        # Call LUMA API with pagination
+        response = requests.get(
+            f"{LUMA_API_ENDPOINT}s",  # Note the 's' at the end for generations endpoint
+            params={'limit': limit, 'offset': offset},
+            headers=headers
+        )
+        
+        app.logger.debug(f"LUMA Generations Response: {response.status_code}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            return jsonify({
+                'success': True,
+                'generations': data.get('generations', []),
+                'total': data.get('total', 0),
+                'limit': limit,
+                'offset': offset
+            })
+            
+        return jsonify({
+            'success': False,
+            'error': 'Failed to fetch generations'
+        }), response.status_code
+        
+    except Exception as e:
+        app.logger.error(f"List Generations Error: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
         }), 500
 @app.route('/check-status/<generation_id>')
 def check_generation_status(generation_id):
