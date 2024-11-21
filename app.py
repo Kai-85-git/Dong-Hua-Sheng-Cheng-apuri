@@ -53,17 +53,31 @@ def generate_animation():
         app.logger.debug(f"LUMA API Response: {response.status_code}")
         
         if response.status_code in [200, 201]:
-            data = response.json()
-            app.logger.debug(f"Generation Data: {data}")
-            
-            return jsonify({
-                'success': True,
-                'generation_id': data['id'],
-                'prompt': prompt,
-                'state': data.get('state', 'queued'),
-                'video_url': None,  # Initially there won't be a video URL
-                'raw_response': data
-            })
+            try:
+                data = response.json()
+                if not data:
+                    raise ValueError("Empty response from API")
+                
+                app.logger.debug(f"Generation Data: {data}")
+                
+                generation_id = data.get('id')
+                if not generation_id:
+                    raise ValueError("No generation ID in response")
+                
+                return jsonify({
+                    'success': True,
+                    'generation_id': generation_id,
+                    'prompt': prompt,
+                    'state': data.get('state', 'queued'),
+                    'video_url': None,  # Initially there won't be a video URL
+                    'raw_response': data
+                })
+            except (ValueError, KeyError) as e:
+                app.logger.error(f"API Response Processing Error: {str(e)}")
+                return jsonify({
+                    'success': False,
+                    'error': f"Invalid API response: {str(e)}"
+                }), 500
             
         return jsonify({
             'success': False,
@@ -97,12 +111,15 @@ def check_generation_status(generation_id):
             data = response.json()
             app.logger.debug(f"Status Check Data: {data}")
             
+            if not data:
+                raise ValueError("Empty response from API")
+            
             state = data.get('state', 'unknown')
             video_url = None
             
             # Only try to get video_url if assets exists and is not None
             assets = data.get('assets')
-            if assets is not None:
+            if isinstance(assets, dict):
                 video_url = assets.get('video')
             
             # Save to history if completed with video URL
