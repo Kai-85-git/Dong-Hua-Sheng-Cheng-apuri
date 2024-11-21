@@ -47,23 +47,53 @@ def generate_animation():
             json={"prompt": prompt}
         )
         
+        # Log the API response for debugging
+        app.logger.debug(f"LUMA API Response Status: {response.status_code}")
+        app.logger.debug(f"LUMA API Response Headers: {response.headers}")
+        
         if response.status_code == 200:
             data = response.json()
-            # Save to history
-            new_animation = Animation(
-                prompt=prompt,
-                video_url=data.get('video_url'),
-                created_at=datetime.utcnow()
-            )
-            db.session.add(new_animation)
-            db.session.commit()
+            app.logger.debug(f"LUMA API Response Data: {data}")
             
-            return jsonify(data)
+            # Extract relevant information from the response
+            generation_id = data.get('id')
+            status = data.get('status', 'unknown')
+            video_url = data.get('url')  # Adjust based on actual API response structure
+            
+            # Save to history only if we have a video URL
+            if video_url:
+                new_animation = Animation(
+                    prompt=prompt,
+                    video_url=video_url,
+                    created_at=datetime.utcnow()
+                )
+                db.session.add(new_animation)
+                db.session.commit()
+            
+            # Return complete response data to frontend
+            return jsonify({
+                'success': True,
+                'generation_id': generation_id,
+                'status': status,
+                'video_url': video_url,
+                'prompt': prompt,
+                'raw_response': data  # Include full response for debugging
+            })
         else:
-            return jsonify({"error": "Failed to generate animation"}), response.status_code
+            error_data = response.json() if response.content else {'message': 'No response content'}
+            app.logger.error(f"LUMA API Error: {error_data}")
+            return jsonify({
+                'success': False,
+                'error': error_data.get('message', 'Failed to generate animation'),
+                'status_code': response.status_code
+            }), response.status_code
             
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        app.logger.error(f"Generation Error: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 @app.route('/history')
 def history():
