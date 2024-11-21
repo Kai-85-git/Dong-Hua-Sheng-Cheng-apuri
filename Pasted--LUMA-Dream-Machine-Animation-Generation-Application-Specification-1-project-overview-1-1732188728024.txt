@@ -1,0 +1,73 @@
+# LUMA Dream Machine Animation Generation Application Specification
+
+## 1. project overview
+### 1.1 Objective
+- To develop a web application that allows beginners to easily generate animated videos from text prompts.
+- Provide an environment where creative expression can be realized without technical knowledge
+
+### 1.2 Main Features
+- Generation of 5-second animated videos from text prompts
+- Ability to save the generated animation
+- Prompt input assistance function (templates and suggestions)
+- Simple and intuitive user interface 2.
+
+## 2. System Requirements
+### 2.1 Technology Stack
+- Front-end: React.js (TypeScript)
+- Modern development environment
+- Ensure type safety
+- Component-based development for ease of maintenance
+- Backend: Node.js + Express
+- Efficiently handles API integration
+- Realization of secure API communication
+- Database: SQLite
+- For storing generation history and templates
+- API: LUMA Dream Machine API
+
+### 2.2 System Configuration
+- Front-end server
+- Back-end API server
+- Database server
+- LUMA Dream Machine API integration
+- Reference URL for LUMA Dream Machine API integration: https://docs.lumalabs.ai/docs/api
+
+## 3. functional requirements
+### 3.1 Video Generation Function
+- Text prompt input form
+- Generation process progress display
+- Preview display of generated videos
+- Error handling and user feedback
+
+### 3.2 Auxiliary Functions
+- Preset templates provided
+- Suggestions for prompts as they are being typed
+- History display of frequently used prompts
+
+### 3.3 Save and Manage Features
+- Local download of generated videos
+- View history of generated prompts
+- Save favorite prompts
+
+## 4. interface requirements
+### 4.1 UI Design
+- Minimalistic and clean design
+- Intuitive operation flow
+- Responsive support (mobile and desktop)
+
+### 4.2 Screen Structure
+- Home screen
+- Prompt input area
+- Template selection section
+- Generate button
+- Preview screen
+- Generated video display
+- Download button
+- History screen
+- List of past generated videos
+- Favorite Prompt
+
+### 4.3 Usability Requirements
+- Minimal clicks to complete video generation
+- Intuitive prompt entry support
+- Easy-to-understand error messages
+- Visual feedback of loading status
