@@ -61,7 +61,7 @@ def generate_animation():
                 'generation_id': data['id'],
                 'prompt': prompt,
                 'state': data.get('state', 'queued'),
-                'video_url': data.get('assets', {}).get('video'),
+                'video_url': None,  # Initially there won't be a video URL
                 'raw_response': data
             })
             
@@ -98,8 +98,12 @@ def check_generation_status(generation_id):
             app.logger.debug(f"Status Check Data: {data}")
             
             state = data.get('state', 'unknown')
-            assets = data.get('assets', {})
-            video_url = assets.get('video') if assets else None
+            video_url = None
+            
+            # Only try to get video_url if assets exists and is not None
+            assets = data.get('assets')
+            if assets is not None:
+                video_url = assets.get('video')
             
             # Save to history if completed with video URL
             if state == 'completed' and video_url:
