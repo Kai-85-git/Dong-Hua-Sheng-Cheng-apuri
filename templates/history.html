@@ -4,160 +4,34 @@
 <div class="container">
     <h1 class="mb-4">Generation History</h1>
 
-    <ul class="nav nav-tabs mb-4" id="historyTabs" role="tablist">
-        <li class="nav-item" role="presentation">
-            <button class="nav-link active" id="local-tab" data-bs-toggle="tab" data-bs-target="#local" type="button" role="tab">Local History</button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" id="luma-tab" data-bs-toggle="tab" data-bs-target="#luma" type="button" role="tab">LUMA History</button>
-        </li>
-    </ul>
-
-    <div class="tab-content" id="historyTabContent">
-        <!-- Local History Tab -->
-        <div class="tab-pane fade show active" id="local" role="tabpanel">
-            <div class="row">
-                {% for animation in animations %}
-                <div class="col-md-6 mb-4">
-                    <div class="card">
-                        <div class="card-body">
-                            <h5 class="card-title">Generated Animation</h5>
-                            <p class="card-text"><small class="text-muted">{{ animation.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</small></p>
-                            <p class="card-text">Prompt: {{ animation.prompt }}</p>
-                            {% if animation.video_url %}
-                            <video controls class="w-100">
-                                <source src="{{ animation.video_url }}" type="video/mp4">
-                                Your browser does not support the video tag.
-                            </video>
-                            <a href="{{ animation.video_url }}" class="btn btn-primary mt-2" download>Download</a>
-                            {% else %}
-                            <p class="text-muted">Video not available</p>
-                            {% endif %}
-                        </div>
-                    </div>
+    <div class="row">
+        {% for animation in animations %}
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Generated Animation</h5>
+                    <p class="card-text"><small class="text-muted">{{ animation.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</small></p>
+                    <p class="card-text">Prompt: {{ animation.prompt }}</p>
+                    {% if animation.video_url %}
+                    <video controls class="w-100">
+                        <source src="{{ animation.video_url }}" type="video/mp4">
+                        Your browser does not support the video tag.
+                    </video>
+                    <a href="{{ animation.video_url }}" class="btn btn-primary mt-2" download>Download</a>
+                    {% else %}
+                    <p class="text-muted">Video not available</p>
+                    {% endif %}
                 </div>
-                {% endfor %}
-            </div>
-
-            {% if not animations %}
-            <div class="text-center">
-                <p>No local animations generated yet.</p>
-                <a href="{{ url_for('index') }}" class="btn btn-primary">Generate Your First Animation</a>
-            </div>
-            {% endif %}
-        </div>
-
-        <!-- LUMA History Tab -->
-        <div class="tab-pane fade" id="luma" role="tabpanel">
-            <div id="lumaGenerations" class="row">
-                <!-- LUMA generations will be loaded here via JavaScript -->
-            </div>
-            <div id="lumaPagination" class="d-flex justify-content-center mt-4">
-                <nav aria-label="Generation history navigation">
-                    <ul class="pagination">
-                        <!-- Pagination controls will be added here via JavaScript -->
-                    </ul>
-                </nav>
             </div>
         </div>
+        {% endfor %}
     </div>
+
+    {% if not animations %}
+    <div class="text-center">
+        <p>No animations generated yet.</p>
+        <a href="{{ url_for('index') }}" class="btn btn-primary">Generate Your First Animation</a>
+    </div>
+    {% endif %}
 </div>
-
-<!-- Add JavaScript for LUMA generations -->
-<script>
-let currentPage = 1;
-const itemsPerPage = 10;
-
-async function loadLumaGenerations(page = 1) {
-    const offset = (page - 1) * itemsPerPage;
-    try {
-        const response = await fetch(`/api/generations?limit=${itemsPerPage}&offset=${offset}`);
-        const data = await response.json();
-        
-        if (data.success) {
-            const generationsContainer = document.getElementById('lumaGenerations');
-            generationsContainer.innerHTML = '';
-            
-            data.generations.forEach(gen => {
-                const videoUrl = gen.assets?.video;
-                const card = document.createElement('div');
-                card.className = 'col-md-6 mb-4';
-                card.innerHTML = `
-                    <div class="card">
-                        <div class="card-body">
-                            <h5 class="card-title">Generated Animation</h5>
-                            <p class="card-text"><small class="text-muted">${new Date(gen.created_at).toLocaleString()}</small></p>
-                            <p class="card-text">Prompt: ${gen.request?.prompt || 'No prompt available'}</p>
-                            ${videoUrl ? `
-                                <video controls class="w-100">
-                                    <source src="${videoUrl}" type="video/mp4">
-                                    Your browser does not support the video tag.
-                                </video>
-                                <a href="${videoUrl}" class="btn btn-primary mt-2" download>Download</a>
-                            ` : '<p class="text-muted">Video not available</p>'}
-                        </div>
-                    </div>
-                `;
-                generationsContainer.appendChild(card);
-            });
-            
-            // Update pagination
-            updatePagination(data.total, page);
-        }
-    } catch (error) {
-        console.error('Error loading LUMA generations:', error);
-    }
-}
-
-function updatePagination(total, currentPage) {
-    const totalPages = Math.ceil(total / itemsPerPage);
-    const paginationContainer = document.querySelector('#lumaPagination .pagination');
-    let paginationHtml = '';
-    
-    // Previous button
-    paginationHtml += `
-        <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
-            <a class="page-link" href="#" data-page="${currentPage - 1}">Previous</a>
-        </li>
-    `;
-    
-    // Page numbers
-    for (let i = 1; i <= totalPages; i++) {
-        if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
-            paginationHtml += `
-                <li class="page-item ${i === currentPage ? 'active' : ''}">
-                    <a class="page-link" href="#" data-page="${i}">${i}</a>
-                </li>
-            `;
-        } else if (i === currentPage - 3 || i === currentPage + 3) {
-            paginationHtml += '<li class="page-item disabled"><span class="page-link">...</span></li>';
-        }
-    }
-    
-    // Next button
-    paginationHtml += `
-        <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
-            <a class="page-link" href="#" data-page="${currentPage + 1}">Next</a>
-        </li>
-    `;
-    
-    paginationContainer.innerHTML = paginationHtml;
-    
-    // Add click handlers
-    paginationContainer.querySelectorAll('.page-link').forEach(link => {
-        link.addEventListener('click', (e) => {
-            e.preventDefault();
-            const page = parseInt(e.target.dataset.page);
-            if (!isNaN(page) && page > 0 && page <= totalPages) {
-                loadLumaGenerations(page);
-            }
-        });
-    });
-}
-
-// Load LUMA generations when tab is shown
-document.querySelector('#luma-tab').addEventListener('shown.bs.tab', () => {
-    loadLumaGenerations(currentPage);
-});
-</script>
 {% endblock %}
