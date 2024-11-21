@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="form-container">
+    <h1 class="text-center mb-4">Generate Animation</h1>
+    
+    <form id="generateForm">
+        <div class="mb-3">
+            <label for="promptInput" class="form-label">Enter your prompt</label>
+            <textarea class="form-control" id="promptInput" name="prompt" rows="3" required
+                      placeholder="Describe the animation you want to create..."></textarea>
+        </div>
+
+        <div class="mb-3">
+            <h5>Template Suggestions</h5>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="card template-card" onclick="document.getElementById('promptInput').value='A serene ocean wave rolling onto a beach at sunset'">
+                        <div class="card-body">
+                            <p class="card-text">Ocean Waves</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card template-card" onclick="document.getElementById('promptInput').value='A blooming flower in timelapse, petals opening gracefully'">
+                        <div class="card-body">
+                            <p class="card-text">Blooming Flower</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card template-card" onclick="document.getElementById('promptInput').value='Abstract geometric shapes morphing and flowing in space'">
+                        <div class="card-body">
+                            <p class="card-text">Abstract Shapes</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center">
+            <button type="submit" class="btn btn-primary" id="generateBtn">Generate Animation</button>
+        </div>
+
+        <div class="progress mt-3" id="progressBar" style="display: none;">
+            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 100%"></div>
+        </div>
+    </form>
+
+    <div id="previewArea" class="preview-container mt-4"></div>
+</div>
+{% endblock %}

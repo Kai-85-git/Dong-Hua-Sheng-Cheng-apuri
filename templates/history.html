@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mb-4">Generation History</h1>
+
+    <div class="row">
+        {% for animation in animations %}
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Generated Animation</h5>
+                    <p class="card-text"><small class="text-muted">{{ animation.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</small></p>
+                    <p class="card-text">Prompt: {{ animation.prompt }}</p>
+                    {% if animation.video_url %}
+                    <video controls class="w-100">
+                        <source src="{{ animation.video_url }}" type="video/mp4">
+                        Your browser does not support the video tag.
+                    </video>
+                    <a href="{{ animation.video_url }}" class="btn btn-primary mt-2" download>Download</a>
+                    {% else %}
+                    <p class="text-muted">Video not available</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if not animations %}
+    <div class="text-center">
+        <p>No animations generated yet.</p>
+        <a href="{{ url_for('index') }}" class="btn btn-primary">Generate Your First Animation</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
