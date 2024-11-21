@@ -110,8 +110,6 @@ function displayError(message) {
                         // If we already have a video URL, display it
                         displayVideo(videoUrl, initialState);
                     } else {
-                        // Start polling for status updates
-                        updateGenerationStatus(generationId);
                         // Show initial status
                         displayStatus(initialState, generationId);
                         
