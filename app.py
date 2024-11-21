@@ -1,27 +1,22 @@
-import os
-from flask import Flask, render_template, jsonify, request, flash, redirect, url_for
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.orm import DeclarativeBase
+from flask import Flask, render_template, request, jsonify
 import requests
+import os
 from datetime import datetime
+from database import db
 
-class Base(DeclarativeBase):
-    pass
-
-db = SQLAlchemy(model_class=Base)
+# Initialize Flask app
 app = Flask(__name__)
 
-app.secret_key = os.environ.get("FLASK_SECRET_KEY", "development_key")
-app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
-app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-    "pool_recycle": 300,
-    "pool_pre_ping": True,
-}
+# Configure database
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ['DATABASE_URL']
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+# Initialize database with app
 db.init_app(app)
 
-LUMA_API_ENDPOINT = "https://api.lumalabs.ai/dream-machine/v1/generations"
-LUMA_API_KEY = os.environ.get("LUMA_API_KEY")
+# Configure LUMA API
+LUMA_API_KEY = os.environ.get('LUMA_API_KEY')
+LUMA_API_ENDPOINT = "https://api.lumalabs.ai/v0/videos"
 
 @app.route('/')
 def index():
@@ -29,72 +24,60 @@ def index():
 
 @app.route('/generate', methods=['POST'])
 def generate_animation():
-    prompt = request.form.get('prompt')
-    if not prompt:
-        return jsonify({"error": "Prompt is required"}), 400
-
     try:
-        # Call LUMA API to generate animation
+        prompt = request.form.get('prompt')
+        if not prompt:
+            return jsonify({
+                'success': False,
+                'error': 'No prompt provided'
+            }), 400
+
         headers = {
             "accept": "application/json",
-            "authorization": f"Bearer {LUMA_API_KEY}",
-            "content-type": "application/json"
+            "content-type": "application/json",
+            "authorization": f"Bearer {LUMA_API_KEY}"
+        }
+        
+        payload = {
+            "prompt": prompt,
+            "aspect_ratio": "16:9",
+            "loop": False
         }
         
         response = requests.post(
             LUMA_API_ENDPOINT,
             headers=headers,
-            json={"prompt": prompt}
+            json=payload
         )
         
-        # Log the API response for debugging
-        app.logger.debug(f"LUMA API Response Status: {response.status_code}")
-        app.logger.debug(f"LUMA API Response Headers: {response.headers}")
+        app.logger.debug(f"LUMA API Response: {response.status_code}")
         
         if response.status_code in [200, 201]:
             data = response.json()
-            app.logger.debug(f"LUMA API Response Data: {data}")
+            app.logger.debug(f"Generation Data: {data}")
             
-            # Extract relevant information from the response
-            generation_id = data.get('id')
-            state = data.get('state', 'unknown')
-            assets = data.get('assets', {})
-            video_url = assets.get('video') if assets else None
-            
-            # Save to history only if we have a video URL
-            if video_url:
-                new_animation = Animation(
-                    prompt=prompt,
-                    video_url=video_url,
-                    created_at=datetime.utcnow()
-                )
-                db.session.add(new_animation)
-                db.session.commit()
-            
-            # Return complete response data to frontend
             return jsonify({
                 'success': True,
-                'generation_id': generation_id,
-                'state': state,
-                'video_url': video_url,
+                'generation_id': data['id'],
                 'prompt': prompt,
-                'raw_response': data  # Include full response for debugging
-            }), 201 if response.status_code == 201 else 200
-        else:
-            error_data = response.json() if response.content else {'message': 'No response content'}
-            app.logger.error(f"LUMA API Error: {error_data}")
-            return jsonify({
-                'success': False,
-                'error': error_data.get('message', 'Failed to generate animation'),
-                'status_code': response.status_code
-            }), response.status_code
+                'state': data.get('state', 'queued'),
+                'video_url': data.get('assets', {}).get('video'),
+                'raw_response': data
+            })
             
+        return jsonify({
+            'success': False,
+            'error': 'Failed to generate animation',
+            'status_code': response.status_code
+        }), response.status_code
+        
     except Exception as e:
         app.logger.error(f"Generation Error: {str(e)}")
         return jsonify({
             'success': False,
             'error': str(e)
         }), 500
+
 @app.route('/check-status/<generation_id>')
 def check_generation_status(generation_id):
     try:
@@ -120,6 +103,7 @@ def check_generation_status(generation_id):
             
             # Save to history if completed with video URL
             if state == 'completed' and video_url:
+                from models import Animation
                 new_animation = Animation(
                     prompt=data.get('request', {}).get('prompt', ''),
                     video_url=video_url,
@@ -147,12 +131,16 @@ def check_generation_status(generation_id):
             'error': str(e)
         }), 500
 
-
 @app.route('/history')
 def history():
+    from models import Animation
     animations = Animation.query.order_by(Animation.created_at.desc()).all()
     return render_template('history.html', animations=animations)
 
+# Create tables
 with app.app_context():
     from models import Animation
     db.create_all()
+
+if __name__ == "__main__":
+    app.run(host='0.0.0.0', port=5000, debug=True)
