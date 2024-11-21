@@ -51,14 +51,15 @@ def generate_animation():
         app.logger.debug(f"LUMA API Response Status: {response.status_code}")
         app.logger.debug(f"LUMA API Response Headers: {response.headers}")
         
-        if response.status_code == 200:
+        if response.status_code in [200, 201]:
             data = response.json()
             app.logger.debug(f"LUMA API Response Data: {data}")
             
             # Extract relevant information from the response
             generation_id = data.get('id')
-            status = data.get('status', 'unknown')
-            video_url = data.get('url')  # Adjust based on actual API response structure
+            state = data.get('state', 'unknown')
+            assets = data.get('assets', {})
+            video_url = assets.get('video') if assets else None
             
             # Save to history only if we have a video URL
             if video_url:
@@ -74,11 +75,11 @@ def generate_animation():
             return jsonify({
                 'success': True,
                 'generation_id': generation_id,
-                'status': status,
+                'state': state,
                 'video_url': video_url,
                 'prompt': prompt,
                 'raw_response': data  # Include full response for debugging
-            })
+            }), 201 if response.status_code == 201 else 200
         else:
             error_data = response.json() if response.content else {'message': 'No response content'}
             app.logger.error(f"LUMA API Error: {error_data}")
@@ -94,6 +95,58 @@ def generate_animation():
             'success': False,
             'error': str(e)
         }), 500
+@app.route('/check-status/<generation_id>')
+def check_generation_status(generation_id):
+    try:
+        headers = {
+            "accept": "application/json",
+            "authorization": f"Bearer {LUMA_API_KEY}"
+        }
+        
+        response = requests.get(
+            f"{LUMA_API_ENDPOINT}/{generation_id}",
+            headers=headers
+        )
+        
+        app.logger.debug(f"Status Check Response: {response.status_code}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            app.logger.debug(f"Status Check Data: {data}")
+            
+            state = data.get('state', 'unknown')
+            assets = data.get('assets', {})
+            video_url = assets.get('video') if assets else None
+            
+            # Save to history if completed with video URL
+            if state == 'completed' and video_url:
+                new_animation = Animation(
+                    prompt=data.get('request', {}).get('prompt', ''),
+                    video_url=video_url,
+                    created_at=datetime.utcnow()
+                )
+                db.session.add(new_animation)
+                db.session.commit()
+            
+            return jsonify({
+                'success': True,
+                'state': state,
+                'video_url': video_url,
+                'failure_reason': data.get('failure_reason')
+            })
+            
+        return jsonify({
+            'success': False,
+            'error': 'Failed to check generation status'
+        }), response.status_code
+        
+    except Exception as e:
+        app.logger.error(f"Status Check Error: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 
 @app.route('/history')
 def history():
