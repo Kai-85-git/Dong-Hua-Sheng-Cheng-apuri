@@ -32,42 +32,70 @@ function displayVideo(videoUrl, state) {
 function displayStatus(state, generationId) {
     let statusMessage;
     let progressClass = 'progress-bar-animated';
+    let progressPercentage;
+    let estimatedTime = '';
     
     switch (state) {
         case 'queued':
-            statusMessage = 'Your animation is queued for generation...';
+            statusMessage = 'Queued: Your animation will begin processing soon...';
+            progressPercentage = 25;
+            estimatedTime = 'Estimated wait time: 1-2 minutes';
             break;
         case 'processing':
-            statusMessage = 'Generating your animation...';
+            statusMessage = 'Processing: Creating your animation...';
+            progressPercentage = 75;
+            estimatedTime = 'Estimated time remaining: 2-3 minutes';
             break;
         case 'completed':
-            statusMessage = 'Generation completed! Loading video...';
+            statusMessage = 'Almost done: Finalizing your animation...';
+            progressPercentage = 100;
             progressClass = '';
+            estimatedTime = 'Completing in a few seconds...';
             break;
         default:
             statusMessage = `Current status: ${state}`;
+            progressPercentage = 50;
     }
     
     previewArea.innerHTML = `
         <div class="alert alert-info">
             <h5>Generation in Progress</h5>
             <p>${statusMessage}</p>
-            <p>Generation ID: ${generationId}</p>
-            <div class="progress mt-2">
+            <p class="text-muted small">${estimatedTime}</p>
+            <p class="small">Generation ID: ${generationId}</p>
+            <div class="progress mt-3">
                 <div class="progress-bar progress-bar-striped ${progressClass}" 
-                     role="progressbar" style="width: 100%"></div>
+                     role="progressbar" 
+                     style="width: ${progressPercentage}%; transition: width 0.5s ease-in-out;"
+                     aria-valuenow="${progressPercentage}" 
+                     aria-valuemin="0" 
+                     aria-valuemax="100">
+                    ${progressPercentage}%
+                </div>
             </div>
         </div>
     `;
 }
 
-function displayError(message) {
+function displayError(message, prompt) {
     previewArea.innerHTML = `
         <div class="alert alert-danger">
             <h5>Generation Failed</h5>
             <p>${message}</p>
+            <button type="button" class="btn btn-primary mt-3" onclick="retryGeneration('${prompt.replace(/'/g, "\\'")}')">
+                <i class="bi bi-arrow-clockwise"></i> Retry Generation
+            </button>
         </div>
     `;
+}
+
+function retryGeneration(prompt) {
+    // Clear error message
+    previewArea.innerHTML = '';
+    // Set the prompt back in the input
+    promptInput.value = prompt;
+    // Trigger form submission
+    generateForm.dispatchEvent(new Event('submit'));
 }
 
     const generateForm = document.getElementById('generateForm');
@@ -134,12 +162,7 @@ function displayError(message) {
                     // Show error message
                     const errorMessage = data.error || 'Failed to generate animation';
                     console.error('Generation Error:', errorMessage);
-                    previewArea.innerHTML = `
-                        <div class="alert alert-danger">
-                            <h5>Generation Failed</h5>
-                            <p>${errorMessage}</p>
-                        </div>
-                    `;
+                    displayError(errorMessage, promptInput.value);
                 }
             } catch (error) {
                 console.error('Request Error:', error);
