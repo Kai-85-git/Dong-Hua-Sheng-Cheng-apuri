@@ -16,7 +16,7 @@ db.init_app(app)
 
 # Configure LUMA API
 LUMA_API_KEY = os.environ.get('LUMA_API_KEY')
-LUMA_API_ENDPOINT = "https://api.lumalabs.ai/v0/videos"
+LUMA_API_ENDPOINT = "https://api.lumalabs.ai/dream-machine/v1/generations"
 
 @app.route('/')
 def index():
